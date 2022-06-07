@@ -1,0 +1,193 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(uuid())
+  username String  @unique
+  password String
+  enabled  Boolean @default(true)
+  role     Role
+
+  @@map("users")
+}
+
+model Intern {
+  id          String    @id @default(uuid())
+  name        String
+  studentId   String    @unique
+  email       String    @unique
+  phone       String    @unique
+  enabled     Boolean   @default(true)
+  specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  specialtyId String
+  monday      String[]
+  tuesday     String[]
+  wednesday   String[]
+  thursday    String[]
+  friday      String[]
+  saturday    String[]
+  sunday      String[]
+
+
+  appointments InternsInAppointment[]
+  @@map("interns")
+}
+
+model Professional {
+  id                   String        @id @default(uuid())
+  name                 String
+  professionalDocument String        @unique
+  email                String        @unique
+  phone                String        @unique
+  specialtyId          String
+  specialty            Specialty     @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  enabled              Boolean       @default(true)
+  appointments         Appointment[]
+  patients             Patient[]
+  monday               String[]
+  tuesday              String[]
+  wednesday            String[]
+  thursday             String[]
+  friday               String[]
+  saturday             String[]
+  sunday               String[]
+
+  @@map("professionals")
+}
+
+model Room {
+  id          String              @id @default(uuid())
+  name        String              @unique
+  description String?
+  enabled     Boolean             @default(true)
+  specialties SpecialtiesInRoom[]
+
+  @@map("rooms")
+}
+
+model Specialty {
+  id                   String              @id @default(uuid())
+  name                 String              @unique
+  healthInsurencePrice Int
+  privatePrice         Int
+  description          String?
+  interns              Intern[]
+  professionals        Professional[]
+  rooms                SpecialtiesInRoom[]
+  enabled              Boolean             @default(true)
+  color                String              @default("#34eb89")
+  servicesPack         ServicePack[]
+
+  @@map("specialties")
+}
+
+model Patient {
+  id                    String        @id @default(uuid())
+  name                  String
+  socilName             String?
+  document              String        @unique
+  documentType          DocumentType
+  email                 String?
+  phone                 String        @unique
+  address               String
+  disability            Boolean       @default(false)
+  disabilityDescription String?
+  description           String?
+  enabled               Boolean       @default(true)
+  professionalId        String?
+  professional          Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  appointments          Appointment[]
+
+  @@map("patients")
+}
+
+model Appointment {
+  id                String                 @id @default(uuid())
+  type              AppointmentType
+  status            AppointmentStatus      @default(AWAITING_PAYMENT)
+  patient           Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId         String
+  dateTime          DateTime
+  description       String?
+  price             Int
+  totalPaid         Int
+  professionalId    String?
+  professional      Professional?          @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  interns           InternsInAppointment[]
+  appointmentPackId String?
+  AppointmentPack   AppointmentPack?       @relation(fields: [appointmentPackId], references: [id], onDelete: Cascade)
+}
+
+model AppointmentPack {
+  id           String        @id @default(uuid())
+  servicePack  ServicePack   @relation(fields: [servicePackId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+
+  servicePackId String
+}
+
+model ServicePack {
+  id                  String    @id @default(uuid())
+  name                String
+  specialty           Specialty @relation(fields: [specialtyId], references: [id])
+  quantity            Int
+  pricePerAppointment Int
+  specialtyId         String
+  enabled             Boolean   @default(true)
+
+  AppointmentPack AppointmentPack[]
+  @@map("servicesPack")
+}
+
+model SpecialtiesInRoom {
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  roomId      String
+  specialtyId String
+
+  @@id([roomId, specialtyId])
+}
+
+model InternsInAppointment {
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  intern      Intern      @relation(fields: [internId], references: [id], onDelete: SetNull)
+
+  appointmentId String
+  internId      String
+
+  @@id([appointmentId, internId])
+}
+
+enum AppointmentStatus {
+  PAID
+  AWAITING_PAYMENT
+  CANCELED
+}
+
+enum AppointmentType {
+  CLINICA_ESCOLA
+  CLINICA_POPULAR
+}
+
+enum Role {
+  ADMIN
+  SECRETARY
+  TECHNICAL_MANAGER
+  INTERN
+}
+
+enum DocumentType {
+  RG
+  CPF
+  RNA
+  CNH
+}
